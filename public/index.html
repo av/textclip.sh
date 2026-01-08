@@ -89,7 +89,9 @@
         <div id="content"></div>
     </div>
     <footer>
-        <a href="mailto:av@av.codes">av@av.codes</a>
+        <span id="year">2026</span>
+        <span>-</span>
+        <a href="https://av.codes" target="_blank">av.codes</a>
         <span>-</span>
         <a href="https://github.com/av/textclip.sh" target="_blank">github</a>
     </footer>
@@ -321,6 +323,7 @@
         }
         }
         init();
+        document.getElementById('year').textContent = new Date().getFullYear();
     </script>
 </body>
 </html>
