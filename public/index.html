@@ -110,8 +110,7 @@
     </footer>
 
     <script>
-        const COMPRESS_THRESHOLD = 500;
-        const PROMPT = `XZTNbts4EMfvfYqpc0kQWpsEcXZhxwmyuzkESIFF0AIFisIYkSOJ8IjUkiN_IEmPRnL1M2xeTE9S0HK3iz2QIDkjzvyHv5HQSjTbJotVt9l-eriHktwYDmR6KSu56jZb7Zs1NFgSPME1xvn0sgkUSa4OZNpttnGhIZCxgbQkjx_r6WUbeO-j2yi-PmwjwWz28fbzx9kMGkZNlWdD4SiD_srYvbw8asbWkNIVStmIaig0TCsra1VSbZ1Vpfclk8qtK9UcS6tMq-dplF7lARekSPtoUS09FwHr5wyY3NXo5KTbbLEVD4YKRqFhwCUc6CnkGOnivA0M5LQ3ZBRQUVhtyUn3-s_pxRzEz8nFDHop_yruNlv2Ghnu7z88oVvDdYMBa4gLncHC0hJqb2gMshIwNjaM6-NdQXNxx46WkGqfNhNIx6lWbJvcYzBw89ddt9kO_vCNJfN-AAWRyVHP4SzlEQiFftxOK8FAeMx2QaB964RCfNQVhqi-9akfMrlfzo9UUsnknlNA9gGWGNx4L697fftt3m22a2L2S9W9vp1epH0gM4E2cPf69uv_7Cd7ewY5mpJ6emJliU3MrIfawJf3yPL1UDCUJLM28NEEdFE-MubE16qO5XSQxM-a4OtGBmpn-L2cDkaj0SDZ0_psdHZ-djpQUdZM3cvLl_SEKk3D-HeLgVTDGMVqVfgwlIqGu4S-Pk-ArZtDH34HmG_WqgdO9c_5PNkD2G22u3QwzmeXDmu6GmQ_6S7YL8d9K7BHE7vN1pD2dfo2gi0SS7szSd6pV56u_wPK0jrjl1niRax3WRWomMaFTiXpsZn2-H16uDuUlRxlUPkoZMag2bemYAy0Cx8VnEBCgZxRgMwJI3IyjNZQBqnPNEYaw8PtzZ8fbiHpgZu7AZwONVs9h7wV8S4qiFXiJmeCvvhRgfE6gnVCZejzBKls3NvBph6Vnz-NDN69u101jNb1fpHCwmoC8VBT9h0`;
+        const PROMPT = `XZTNbts4EMfvfYqpc0kQWpsEcXZhxwmyuzkESIFF0AIFisIYkSOJ8IjUkiN_IEmPRnL1M2xeTE9S0HK3iz2QIDkjzvyHv5HQSjTbJotVt9l-eriHktwYDmR6KSu56jZb7Zs1NFgSPME1xvn0sgkUSa4OZNpttnGhIZCxgbQkjx_r6WUbeO-j2yi-PmwjwWz28fbzx9kMGkZNlWdD4SiD_srYvbw8asbWkNIVStmIaig0TCsra1VSbZ1Vpfclk8qtK9UcS6tMq-dplF7lARekSPtoUS09FwHr5wyY3NXo5KTbbLEVD4YKRqFhwCUc6CnkGOnivA0M5LQ3ZBRQUVhtyUn3-s_pxRzEz8nFDHop_yruNlv2Ghnu7z88oVvDdYMBa4gLncHC0hJqb2gMshIwNjaM6-NdQXNxx46WkGqfNhNIx6lWbJvcYzBw89ddt9kO_vCNJfN-AAWRyVHP4SzlUPkoZMag2bemYAy0Cx8VnEBCgZxRgMwJI3IyjNZQBqnPNEYaw8PtzZ8fbiHpgZu7AZwONVs9h7wV8S4qiFXiJmeCvvhRgfE6gnVCZejzBKls3NvBph6Vnz-NDN69u101jNb1fpHCwmoC8VBT9h0`;
 
         const PRESETS = {
             claude: { url: 'https://claude.ai/new', param: 'q', label: 'Claude' },
@@ -149,17 +148,16 @@
 
         async function makeUrl(text, options = {}) {
             const { ask, redirect } = options;
-            let base;
-            if (text.length > COMPRESS_THRESHOLD) {
-                base = `${window.location.origin}#c=${await compress(text)}`;
-            } else {
-                base = `${window.location.origin}#t=${encodeURIComponent(text)}`;
-            }
+            // Generate both versions and use the shorter one
+            const encoded = `#t=${encodeURIComponent(text)}`;
+            const compressed = `#c=${await compress(text)}`;
+            const hash = compressed.length < encoded.length ? compressed : encoded;
+            const base = `${window.location.origin}${hash}`;
             if (ask) {
-                return `${window.location.origin}?ask=${ask}${base.slice(window.location.origin.length)}`;
+                return `${window.location.origin}?ask=${ask}${hash}`;
             }
             if (redirect) {
-                return `${window.location.origin}?redirect=${encodeURIComponent(redirect)}${base.slice(window.location.origin.length)}`;
+                return `${window.location.origin}?redirect=${encodeURIComponent(redirect)}${hash}`;
             }
             return base;
         }
