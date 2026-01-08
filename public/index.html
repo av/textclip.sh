@@ -15,6 +15,25 @@
             padding: 0;
             box-sizing: border-box;
         }
+        /* Scrollbar styling */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--fg) var(--bg);
+        }
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--fg);
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border);
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace, sans-serif;
             background: var(--bg);
@@ -22,21 +41,34 @@
             line-height: 1.6;
             min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
+            flex-direction: column;
         }
-        .container {
-            max-width: 900px;
-            width: 100%;
-            border: 1px solid var(--border);
-            padding: 60px;
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 24px 40px;
         }
         h1 {
             font-size: 1.5rem;
             font-weight: 400;
-            margin-bottom: 40px;
             letter-spacing: -0.02em;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 60px 40px;
+            flex: 1;
+        }
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 24px 40px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        footer a {
+            margin: 0 12px;
         }
         #text-display {
             background: #151515;
@@ -78,13 +110,51 @@
             font-family: 'SF Mono', Monaco, monospace;
             font-size: 0.9em;
         }
+        input, textarea {
+            width: 100%;
+            background: #151515;
+            border: 1px solid var(--border);
+            color: var(--fg);
+            padding: 10px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+        textarea {
+            resize: vertical;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--fg);
+        }
+        .badge-section {
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 1px solid var(--border);
+        }
+        .badge-preview {
+            margin: 16px 0;
+            padding: 16px;
+            background: #151515;
+            border: 1px solid var(--border);
+        }
+        .badge-preview img {
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <header>
         <h1>textclip.sh</h1>
+    </header>
+    <div class="container">
         <div id="content"></div>
     </div>
+    <footer>
+        <a href="mailto:av@av.codes">av@av.codes</a>
+        <span>-</span>
+        <a href="https://github.com/av/textclip.sh" target="_blank">github</a>
+    </footer>
 
     <script>
         const params = new URLSearchParams(window.location.search);
@@ -94,7 +164,10 @@
         if (text) {
             // Display text with copy button
             content.innerHTML = `
-                <button id="copy-btn">Copy to Clipboard</button>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 24px;">
+                    <button id="copy-btn">copy</button>
+                    <button id="new-clip-btn">new clip</button>
+                </div>
                 <div id="text-display">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
             `;
 
@@ -104,22 +177,85 @@
                     await navigator.clipboard.writeText(text);
                     copyBtn.textContent = 'Copied!';
                     setTimeout(() => {
-                        copyBtn.textContent = 'Copy to Clipboard';
+                        copyBtn.textContent = 'copy';
                     }, 2000);
                 } catch (err) {
                     copyBtn.textContent = 'Failed to copy';
                     console.error('Failed to copy:', err);
                 }
             });
+
+            const newClipBtn = document.getElementById('new-clip-btn');
+            newClipBtn.addEventListener('click', () => {
+                window.location.href = window.location.origin;
+            });
         } else {
-            // Landing page
+            // Create new clip interface
             content.innerHTML = `
-                <p>share text via url</p>
+                <p>create new clip</p>
                 <br>
-                <p>usage: <code>textclip.sh?text=your_text</code></p>
+                <textarea id="clip-content" placeholder="content" rows="10"></textarea>
                 <br>
-                <p>example: <a href="?text=hello%20world">textclip.sh?text=hello%20world</a></p>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 24px;">
+                    <button id="copy-url-btn">copy URL</button>
+                    <button id="copy-badge-btn">copy badge</button>
+                </div>
             `;
+
+            const clipContent = document.getElementById('clip-content');
+            const copyUrlBtn = document.getElementById('copy-url-btn');
+            const copyBadgeBtn = document.getElementById('copy-badge-btn');
+
+            copyUrlBtn.addEventListener('click', async () => {
+                const text = clipContent.value.trim();
+                if (!text) {
+                    copyUrlBtn.textContent = 'Enter text first';
+                    setTimeout(() => {
+                        copyUrlBtn.textContent = 'copy URL';
+                    }, 2000);
+                    return;
+                }
+
+                const url = `${window.location.origin}?text=${encodeURIComponent(text)}`;
+                try {
+                    await navigator.clipboard.writeText(url);
+                    copyUrlBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyUrlBtn.textContent = 'copy URL';
+                    }, 2000);
+                } catch (err) {
+                    copyUrlBtn.textContent = 'Failed';
+                    console.error('Failed to copy:', err);
+                }
+            });
+
+            copyBadgeBtn.addEventListener('click', async () => {
+                const text = clipContent.value.trim();
+                if (!text) {
+                    copyBadgeBtn.textContent = 'Enter text first';
+                    setTimeout(() => {
+                        copyBadgeBtn.textContent = 'copy badge';
+                    }, 2000);
+                    return;
+                }
+
+                const encodedText = encodeURIComponent(text);
+                const badgeMessage = text.length > 30 ? 'clipboard' : text.replace(/ /g, '_');
+                const badgeUrl = `https://img.shields.io/badge/copy-${encodeURIComponent(badgeMessage)}-blue?style=flat`;
+                const targetUrl = `${window.location.origin}?text=${encodedText}`;
+                const markdown = `[![copy](${badgeUrl})](${targetUrl})`;
+
+                try {
+                    await navigator.clipboard.writeText(markdown);
+                    copyBadgeBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyBadgeBtn.textContent = 'copy badge';
+                    }, 2000);
+                } catch (err) {
+                    copyBadgeBtn.textContent = 'Failed';
+                    console.error('Failed to copy:', err);
+                }
+            });
         }
     </script>
 </body>

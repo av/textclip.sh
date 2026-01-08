@@ -16,5 +16,6 @@ Deployment. Prepared ./deploy.sh with wrangler
 Phase 4.
 Design and UX.
 
-Phase 4.
+Phase 5.
 GitHub badges.
+Implemented: shields.io badge generator creates markdown badges that link to textclip.sh.
