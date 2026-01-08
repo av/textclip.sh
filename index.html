@@ -29,15 +29,15 @@
     <h1>textclip.sh</h1>
     <div id="text-display"></div>
     <button id="copy-btn">Copy to Clipboard</button>
-    
+
     <script>
         const params = new URLSearchParams(window.location.search);
         const text = params.get('text') || 'No text provided. Add ?text=your_text to the URL';
         const display = document.getElementById('text-display');
         const copyBtn = document.getElementById('copy-btn');
-        
+
         display.textContent = text;
-        
+
         copyBtn.addEventListener('click', async () => {
             try {
                 await navigator.clipboard.writeText(text);
