@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>textclip.sh</title>
+    <meta name="description" content="Copy-prompt buttons for your README. Create shareable badges that let users copy prompts, snippets, or any text with one click.">
+    <meta property="og:title" content="textclip.sh">
+    <meta property="og:description" content="Copy-prompt buttons for your README. Create shareable badges for GitHub, npm, and docs.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://textclip.sh">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="textclip.sh">
+    <meta name="twitter:description" content="Copy-prompt buttons for your README.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='white'>🖹</text></svg>">
     <style>
         :root {
             --bg: #252421;
@@ -33,8 +42,9 @@
             animation: fadeIn 0.125s ease-in forwards;
         }
         @keyframes fadeIn { to { opacity: 1; } }
-        header { border-bottom: 1px solid var(--border); padding: 24px 40px; }
-        h1 { font-size: 1.5rem; font-weight: 400; letter-spacing: -0.02em; max-width: 900px; margin: 0 auto; }
+        header { border-bottom: 1px solid var(--border); padding: 24px 0; }
+        header > h1 { max-width: 900px; margin: 0 auto; padding: 0 40px; }
+        h1 { font-size: 1.5rem; font-weight: 400; letter-spacing: -0.02em; }
         h3 { font-size: 1rem; font-weight: 400; }
         .container { max-width: 900px; width: 100%; margin: 0 auto; padding: 60px 40px; flex: 1; }
         footer { border-top: 1px solid var(--border); padding: 24px 40px; text-align: center; font-size: 0.9rem; }
@@ -58,6 +68,7 @@
         .justify-between { justify-content: space-between; }
         .gap-3 { gap: 12px; }
         .mb-4 { margin-bottom: 16px; }
+
         .mb-6 { margin-bottom: 24px; }
         .mt-6 { margin-top: 24px; }
         .p-4 { padding: 16px; }
@@ -84,8 +95,37 @@
     </footer>
 
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const text = params.get('text');
+        const COMPRESS_THRESHOLD = 500;
+
+        async function compress(str) {
+            const stream = new Blob([str]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+            const buf = await new Response(stream).arrayBuffer();
+            return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        async function decompress(b64) {
+            const bin = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+            const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+            const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+            return await new Response(stream).text();
+        }
+
+        async function getText() {
+            const hash = window.location.hash.slice(1);
+            if (hash.startsWith('c=')) return await decompress(hash.slice(2));
+            if (hash.startsWith('t=')) return decodeURIComponent(hash.slice(2));
+            return new URLSearchParams(window.location.search).get('text');
+        }
+
+        async function makeUrl(text) {
+            if (text.length > COMPRESS_THRESHOLD) {
+                return `${window.location.origin}#c=${await compress(text)}`;
+            }
+            return `${window.location.origin}#t=${encodeURIComponent(text)}`;
+        }
+
+        async function init() {
+        const text = await getText();
         const content = document.getElementById('content');
 
         if (text) {
@@ -119,10 +159,10 @@
         } else {
             // Create new clip interface
             content.innerHTML = `
-                <p>create new clip</p>
+                <p>Create a copy-prompt button for your README - or any text you want to share.</p>
                 <br>
-                <textarea id="clip-content" placeholder="content" rows="10"></textarea>
-                <br>
+                <textarea id="clip-content" placeholder="Your prompt, snippet, or text..." rows="10"></textarea>
+                <div id="char-warning" class="hidden" style="color: #e57373; font-size: 0.85rem; margin-bottom: 12px;"></div>
                 <div class="flex justify-between mb-6">
                     <button id="copy-url-btn">URL</button>
                     <button id="copy-badge-btn">badge</button>
@@ -158,6 +198,20 @@
             const clipContent = document.getElementById('clip-content');
             const copyUrlBtn = document.getElementById('copy-url-btn');
             const copyBadgeBtn = document.getElementById('copy-badge-btn');
+            const charWarning = document.getElementById('char-warning');
+            const MAX_URL_LENGTH = 10000;
+
+            clipContent.addEventListener('input', async () => {
+                const text = clipContent.value;
+                if (!text) { charWarning.classList.add('hidden'); return; }
+                const url = await makeUrl(text);
+                if (url.length > MAX_URL_LENGTH) {
+                    charWarning.textContent = `⚠️ URL is ${url.length} chars.`;
+                    charWarning.classList.remove('hidden');
+                } else {
+                    charWarning.classList.add('hidden');
+                }
+            });
 
             copyUrlBtn.addEventListener('click', async () => {
                 const text = clipContent.value.trim();
@@ -169,7 +223,7 @@
                     return;
                 }
 
-                const url = `${window.location.origin}?text=${encodeURIComponent(text)}`;
+                const url = await makeUrl(text);
                 try {
                     await navigator.clipboard.writeText(url);
                     copyUrlBtn.textContent = 'Copied!';
@@ -202,11 +256,10 @@
                 return `https://img.shields.io/badge/${encodedMessage}-${messageBg}?style=${style}`;
             }
 
-            function updateBadgePreview() {
+            async function updateBadgePreview() {
                 const text = clipContent.value.trim();
                 if (!text) return;
 
-                const encodedText = encodeURIComponent(text);
                 const label = badgeLabel.value || '';
                 const message = badgeMessage.value || 'copy_prompt';
                 const labelBg = badgeLabelBg.value || '555';
@@ -214,7 +267,7 @@
                 const style = badgeStyle.value || 'flat';
 
                 const badgeUrl = generateBadgeUrl(label, message, labelBg, messageBg, style);
-                const targetUrl = `${window.location.origin}?text=${encodedText}`;
+                const targetUrl = await makeUrl(text);
 
                 badgePreview.innerHTML = `<a href="${targetUrl}" target="_blank"><img src="${badgeUrl}" alt="badge"></a>`;
             }
@@ -240,7 +293,6 @@
 
             copyBadgeMarkdownBtn.addEventListener('click', async () => {
                 const text = clipContent.value.trim();
-                const encodedText = encodeURIComponent(text);
                 const label = badgeLabel.value || '';
                 const message = badgeMessage.value || 'copy_prompt';
                 const labelBg = badgeLabelBg.value || '555';
@@ -248,7 +300,7 @@
                 const style = badgeStyle.value || 'flat';
 
                 const badgeUrl = generateBadgeUrl(label, message, labelBg, messageBg, style);
-                const targetUrl = `${window.location.origin}?text=${encodedText}`;
+                const targetUrl = await makeUrl(text);
                 const markdown = `[![${label || message}](${badgeUrl})](${targetUrl})`;
 
                 try {
@@ -267,6 +319,8 @@
                 badgeConfig.classList.add('hidden');
             });
         }
+        }
+        init();
     </script>
 </body>
 </html>

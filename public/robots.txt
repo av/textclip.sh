@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://textclip.sh/sitemap.xml
