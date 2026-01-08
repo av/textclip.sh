@@ -1,0 +1,7 @@
+name = "textclip-sh"
+compatibility_date = "2026-01-08"
+
+pages_build_output_dir = "public"
+
+[env.production]
+name = "textclip-sh"

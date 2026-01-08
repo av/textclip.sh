@@ -11,7 +11,10 @@ Zero-cost hosting?
 Cloudflare Pages.
 
 Phase 3.
-Deployment.
+Deployment. Prepared ./deploy.sh with wrangler
 
 Phase 4.
-GitHub badges
+Design and UX.
+
+Phase 4.
+GitHub badges.
