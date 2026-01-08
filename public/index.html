@@ -79,11 +79,13 @@
         .border { border: 1px solid var(--border); }
         .text-fg { color: var(--fg); }
         .btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+        header a { text-decoration: none; }
+        header a:hover { opacity: 0.8; }
     </style>
 </head>
 <body>
     <header>
-        <h1>textclip.sh</h1>
+        <h1><a href="/">textclip.sh</a></h1>
     </header>
     <div class="container">
         <div id="content"></div>
@@ -98,6 +100,20 @@
 
     <script>
         const COMPRESS_THRESHOLD = 500;
+
+        const PRESETS = {
+            claude: { url: 'https://claude.ai/new', param: 'q', label: 'Claude' },
+            chatgpt: { url: 'https://chatgpt.com/', param: 'q', label: 'ChatGPT' },
+            perplexity: { url: 'https://www.perplexity.ai/search', param: 'q', label: 'Perplexity' },
+            gemini: { url: 'https://gemini.google.com/app', param: 'q', label: 'Gemini' },
+            google: { url: 'https://www.google.com/search', param: 'q', label: 'Google' },
+            bing: { url: 'https://www.bing.com/search', param: 'q', label: 'Bing' },
+            kagi: { url: 'https://kagi.com/search', param: 'q', label: 'Kagi' },
+            duckduckgo: { url: 'https://duckduckgo.com/', param: 'q', label: 'DuckDuckGo' },
+            brave: { url: 'https://search.brave.com/search', param: 'q', label: 'Brave' },
+            ecosia: { url: 'https://www.ecosia.org/search', param: 'q', label: 'Ecosia' },
+            wolfram: { url: 'https://www.wolframalpha.com/input', param: 'i', label: 'Wolfram' },
+        };
 
         async function compress(str) {
             const stream = new Blob([str]).stream().pipeThrough(new CompressionStream('deflate-raw'));
@@ -119,16 +135,43 @@
             return new URLSearchParams(window.location.search).get('text');
         }
 
-        async function makeUrl(text) {
+        async function makeUrl(text, options = {}) {
+            const { ask, redirect } = options;
+            let base;
             if (text.length > COMPRESS_THRESHOLD) {
-                return `${window.location.origin}#c=${await compress(text)}`;
+                base = `${window.location.origin}#c=${await compress(text)}`;
+            } else {
+                base = `${window.location.origin}#t=${encodeURIComponent(text)}`;
             }
-            return `${window.location.origin}#t=${encodeURIComponent(text)}`;
+            if (ask) {
+                return `${window.location.origin}?ask=${ask}${base.slice(window.location.origin.length)}`;
+            }
+            if (redirect) {
+                return `${window.location.origin}?redirect=${encodeURIComponent(redirect)}${base.slice(window.location.origin.length)}`;
+            }
+            return base;
         }
 
         async function init() {
+        const params = new URLSearchParams(window.location.search);
         const text = await getText();
         const content = document.getElementById('content');
+
+        // Handle preset redirect
+        const askPreset = params.get('ask');
+        if (askPreset && PRESETS[askPreset] && text) {
+            const p = PRESETS[askPreset];
+            window.location.href = `${p.url}?${p.param}=${encodeURIComponent(text)}`;
+            return;
+        }
+
+        // Handle custom redirect
+        const redirect = params.get('redirect');
+        if (redirect && text) {
+            const finalUrl = redirect.replace(/__TEXT__/g, encodeURIComponent(text));
+            window.location.href = finalUrl;
+            return;
+        }
 
         if (text) {
             // Display text with copy button
@@ -167,14 +210,24 @@
                 <div class="flex gap-3" style="font-size: 0.85rem; margin-bottom: 8px; opacity: 0.7;">
                     <span id="char-counter">0 characters</span>
                     <span id="token-counter">~0 tokens</span>
+                    <span id="url-counter">0 URL chars</span>
                 </div>
-                <div id="char-warning" class="hidden" style="color: #e57373; font-size: 0.85rem; margin-bottom: 12px;"></div>
-                <div class="flex justify-between mb-6">
+                <div class="flex gap-3 mb-6" style="flex-wrap: wrap;">
                     <button id="copy-badge-btn">badge</button>
-                    <button id="copy-url-btn">URL</button>
+                    <button id="services-btn">redirect to</button>
+                    <button id="copy-url-btn">url</button>
                 </div>
                 <div id="badge-config" class="hidden mt-6 p-6 bg-dark border">
                     <h3 class="mb-4">Badge Configuration</h3>
+                    <label>Link to</label>
+                    <select id="badge-link-type" class="mb-4">
+                        <option value="copy">textclip.sh</option>
+                    </select>
+                    <div id="badge-custom-redirect-wrapper" class="hidden">
+                        <label>Redirect Template</label>
+                        <input type="text" id="badge-custom-redirect" value="http://localhost:3000?prompt=__TEXT__" placeholder="https://example.com?q=__TEXT__" class="mb-4">
+                        <p style="font-size: 0.8rem; opacity: 0.6; margin-top: -8px; margin-bottom: 12px;">Use <code>__TEXT__</code> as placeholder</p>
+                    </div>
                     <label>Label</label>
                     <input type="text" id="badge-label" value="" placeholder="optional" class="mb-4">
                     <label>Message</label>
@@ -199,15 +252,30 @@
                         <button id="close-badge-config-btn" class="flex-1 btn-ghost">close</button>
                     </div>
                 </div>
+                <div id="services-config" class="hidden mt-6 p-6 bg-dark border">
+                    <h3 class="mb-4">Redirect To</h3>
+                    <p style="font-size: 0.85rem; opacity: 0.7; margin-bottom: 16px;">Copy a URL that redirects to a service with your text pre-filled.</p>
+                    <div class="flex gap-3 mb-4" style="flex-wrap: wrap;" id="service-buttons"></div>
+                    <div class="mb-4" style="border-top: 1px solid var(--border); padding-top: 16px;">
+                        <label style="font-size: 0.85rem; opacity: 0.7;">Custom URL (use <code>__TEXT__</code> as placeholder)</label>
+                        <div class="flex gap-3">
+                            <input type="text" id="custom-redirect-template" value="" placeholder="https://example.com?q=__TEXT__" style="margin-bottom: 0; flex: 1;">
+                            <button id="copy-custom-url-btn">copy</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button id="close-services-btn" class="flex-1 btn-ghost">close</button>
+                    </div>
+                </div>
             `;
 
             const clipContent = document.getElementById('clip-content');
             const copyUrlBtn = document.getElementById('copy-url-btn');
             const copyBadgeBtn = document.getElementById('copy-badge-btn');
-            const charWarning = document.getElementById('char-warning');
+            const servicesBtn = document.getElementById('services-btn');
             const charCounter = document.getElementById('char-counter');
             const tokenCounter = document.getElementById('token-counter');
-            const MAX_URL_LENGTH = 10000;
+            const urlCounter = document.getElementById('url-counter');
 
             function estimateTokens(text) {
                 // Rough estimation: ~4 characters per token on average
@@ -217,19 +285,38 @@
             clipContent.addEventListener('input', async () => {
                 const text = clipContent.value;
 
-                // Update character and token counters
+                // Update character counter
                 const charCount = text.length;
-                const tokenCount = estimateTokens(text);
                 charCounter.textContent = `${charCount} character${charCount !== 1 ? 's' : ''}`;
-                tokenCounter.textContent = `~${tokenCount} token${tokenCount !== 1 ? 's' : ''}`;
 
-                if (!text) { charWarning.classList.add('hidden'); return; }
-                const url = await makeUrl(text);
-                if (url.length > MAX_URL_LENGTH) {
-                    charWarning.textContent = `⚠️ URL is ${url.length} chars.`;
-                    charWarning.classList.remove('hidden');
+                // Update token counter with color coding
+                const tokenCount = estimateTokens(text);
+                tokenCounter.textContent = `~${tokenCount} token${tokenCount !== 1 ? 's' : ''}`;
+                if (tokenCount >= 16000) {
+                    tokenCounter.style.color = '#e57373';
+                } else if (tokenCount >= 8000) {
+                    tokenCounter.style.color = '#ffb74d';
                 } else {
-                    charWarning.classList.add('hidden');
+                    tokenCounter.style.color = '';
+                }
+
+                if (!text) {
+                    urlCounter.textContent = '0 URL chars';
+                    urlCounter.style.color = '';
+                    return;
+                }
+
+                const url = await makeUrl(text);
+                const urlLength = url.length;
+
+                // Update URL counter with color coding
+                urlCounter.textContent = `${urlLength} URL char${urlLength !== 1 ? 's' : ''}`;
+                if (urlLength >= 10000) {
+                    urlCounter.style.color = '#e57373';
+                } else if (urlLength >= 7000) {
+                    urlCounter.style.color = '#ffb74d';
+                } else {
+                    urlCounter.style.color = '';
                 }
             });
 
@@ -258,6 +345,9 @@
 
             // Badge configuration form elements
             const badgeConfig = document.getElementById('badge-config');
+            const badgeLinkType = document.getElementById('badge-link-type');
+            const badgeCustomRedirectWrapper = document.getElementById('badge-custom-redirect-wrapper');
+            const badgeCustomRedirect = document.getElementById('badge-custom-redirect');
             const badgeLabel = document.getElementById('badge-label');
             const badgeMessage = document.getElementById('badge-message');
             const badgeLabelBg = document.getElementById('badge-label-bg');
@@ -266,6 +356,54 @@
             const badgePreview = document.getElementById('badge-preview');
             const copyBadgeMarkdownBtn = document.getElementById('copy-badge-markdown-btn');
             const closeBadgeConfigBtn = document.getElementById('close-badge-config-btn');
+
+            // Populate link type dropdown with presets
+            function populateLinkTypeDropdown() {
+                Object.entries(PRESETS).forEach(([key, preset]) => {
+                    const option = document.createElement('option');
+                    option.value = `preset:${key}`;
+                    option.textContent = preset.label;
+                    badgeLinkType.appendChild(option);
+                });
+                const customOption = document.createElement('option');
+                customOption.value = 'custom';
+                customOption.textContent = 'Custom redirect';
+                badgeLinkType.appendChild(customOption);
+            }
+            populateLinkTypeDropdown();
+
+            // Handle link type change: update message and show/hide custom redirect input
+            badgeLinkType.addEventListener('change', () => {
+                const value = badgeLinkType.value;
+                if (value === 'copy') {
+                    badgeMessage.value = 'copy_prompt';
+                    badgeCustomRedirectWrapper.classList.add('hidden');
+                } else if (value === 'custom') {
+                    badgeMessage.value = 'open_link';
+                    badgeCustomRedirectWrapper.classList.remove('hidden');
+                } else if (value.startsWith('preset:')) {
+                    const presetKey = value.slice(7);
+                    const preset = PRESETS[presetKey];
+                    badgeMessage.value = `ask_${presetKey}`;
+                    badgeCustomRedirectWrapper.classList.add('hidden');
+                }
+                updateBadgePreview();
+            });
+
+            // Get target URL based on link type selection
+            async function getBadgeTargetUrl(text) {
+                const value = badgeLinkType.value;
+                if (value === 'copy') {
+                    return await makeUrl(text);
+                } else if (value === 'custom') {
+                    const template = badgeCustomRedirect.value.trim();
+                    return await makeUrl(text, { redirect: template });
+                } else if (value.startsWith('preset:')) {
+                    const presetKey = value.slice(7);
+                    return await makeUrl(text, { ask: presetKey });
+                }
+                return await makeUrl(text);
+            }
 
             function generateBadgeUrl(label, message, labelBg, messageBg, style) {
                 const encodedMessage = encodeURIComponent(message);
@@ -287,7 +425,7 @@
                 const style = badgeStyle.value || 'flat';
 
                 const badgeUrl = generateBadgeUrl(label, message, labelBg, messageBg, style);
-                const targetUrl = await makeUrl(text);
+                const targetUrl = await getBadgeTargetUrl(text);
 
                 badgePreview.innerHTML = `<a href="${targetUrl}" target="_blank"><img src="${badgeUrl}" alt="badge"></a>`;
             }
@@ -302,12 +440,14 @@
                     return;
                 }
 
+                // Close other panels
+                servicesConfig.classList.add('hidden');
                 badgeConfig.classList.remove('hidden');
                 updateBadgePreview();
             });
 
             // Update preview on any input change
-            [badgeLabel, badgeMessage, badgeLabelBg, badgeBg, badgeStyle].forEach(input => {
+            [badgeLabel, badgeMessage, badgeLabelBg, badgeBg, badgeStyle, badgeCustomRedirect].forEach(input => {
                 input.addEventListener('input', updateBadgePreview);
             });
 
@@ -320,7 +460,7 @@
                 const style = badgeStyle.value || 'flat';
 
                 const badgeUrl = generateBadgeUrl(label, message, labelBg, messageBg, style);
-                const targetUrl = await makeUrl(text);
+                const targetUrl = await getBadgeTargetUrl(text);
                 const markdown = `[![${label || message}](${badgeUrl})](${targetUrl})`;
 
                 try {
@@ -337,6 +477,83 @@
 
             closeBadgeConfigBtn.addEventListener('click', () => {
                 badgeConfig.classList.add('hidden');
+            });
+
+            // Services panel
+            const servicesConfig = document.getElementById('services-config');
+            const serviceButtons = document.getElementById('service-buttons');
+            const closeServicesBtn = document.getElementById('close-services-btn');
+
+            function renderServiceButtons() {
+                serviceButtons.innerHTML = Object.entries(PRESETS).map(([key, preset]) =>
+                    `<button class="service-copy-btn" data-service="${key}">${preset.label}</button>`
+                ).join('');
+
+                serviceButtons.querySelectorAll('.service-copy-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const text = clipContent.value.trim();
+                        if (!text) return;
+                        const service = btn.dataset.service;
+                        const url = await makeUrl(text, { ask: service });
+                        try {
+                            await navigator.clipboard.writeText(url);
+                            btn.textContent = 'Copied!';
+                            setTimeout(() => {
+                                btn.textContent = PRESETS[service].label;
+                            }, 2000);
+                        } catch (err) {
+                            btn.textContent = 'Failed';
+                            console.error('Failed to copy:', err);
+                        }
+                    });
+                });
+            }
+
+            servicesBtn.addEventListener('click', () => {
+                const text = clipContent.value.trim();
+                if (!text) {
+                    servicesBtn.textContent = 'Enter text first';
+                    setTimeout(() => {
+                        servicesBtn.textContent = 'redirect to';
+                    }, 2000);
+                    return;
+                }
+                // Close other panels
+                badgeConfig.classList.add('hidden');
+                servicesConfig.classList.remove('hidden');
+                renderServiceButtons();
+            });
+
+            closeServicesBtn.addEventListener('click', () => {
+                servicesConfig.classList.add('hidden');
+            });
+
+            // Custom URL within services panel
+            const customRedirectTemplate = document.getElementById('custom-redirect-template');
+            const copyCustomUrlBtn = document.getElementById('copy-custom-url-btn');
+
+            copyCustomUrlBtn.addEventListener('click', async () => {
+                const text = clipContent.value.trim();
+                if (!text) return;
+                const template = customRedirectTemplate.value.trim();
+                if (!template) {
+                    copyCustomUrlBtn.textContent = 'Enter URL';
+                    setTimeout(() => {
+                        copyCustomUrlBtn.textContent = 'copy';
+                    }, 2000);
+                    return;
+                }
+                const url = await makeUrl(text, { redirect: template });
+                try {
+                    await navigator.clipboard.writeText(url);
+                    copyCustomUrlBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyCustomUrlBtn.textContent = 'copy';
+                    }, 2000);
+                } catch (err) {
+                    copyCustomUrlBtn.textContent = 'Failed';
+                    console.error('Failed to copy:', err);
+                }
             });
         }
         }
