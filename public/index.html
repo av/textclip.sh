@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>textclip.sh</title>
-    <meta name="description" content="Copy-prompt buttons for your README. Create shareable badges that let users copy prompts, snippets, or any text with one click.">
+    <meta name="description" content="Copy-prompt badges for your README. Create shareable badges that let users copy prompts, snippets, or any text with one click.">
     <meta property="og:title" content="textclip.sh">
-    <meta property="og:description" content="Copy-prompt buttons for your README. Create shareable badges for GitHub, npm, and docs.">
+    <meta property="og:description" content="Copy-prompt badges for your README. Create shareable badges for GitHub, npm, and docs.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://textclip.sh">
     <meta name="twitter:card" content="summary">
@@ -161,13 +161,17 @@
         } else {
             // Create new clip interface
             content.innerHTML = `
-                <p>Create a copy-prompt button for your README - or any text you want to share.</p>
+                <p>Create a copy-prompt badge for your README - or any text you want to share.</p>
                 <br>
                 <textarea id="clip-content" placeholder="Your prompt, snippet, or text..." rows="10"></textarea>
+                <div class="flex justify-between" style="font-size: 0.85rem; margin-bottom: 8px; opacity: 0.7;">
+                    <span id="char-counter">0 characters</span>
+                    <span id="token-counter">~0 tokens</span>
+                </div>
                 <div id="char-warning" class="hidden" style="color: #e57373; font-size: 0.85rem; margin-bottom: 12px;"></div>
                 <div class="flex justify-between mb-6">
-                    <button id="copy-url-btn">URL</button>
                     <button id="copy-badge-btn">badge</button>
+                    <button id="copy-url-btn">URL</button>
                 </div>
                 <div id="badge-config" class="hidden mt-6 p-6 bg-dark border">
                     <h3 class="mb-4">Badge Configuration</h3>
@@ -201,10 +205,24 @@
             const copyUrlBtn = document.getElementById('copy-url-btn');
             const copyBadgeBtn = document.getElementById('copy-badge-btn');
             const charWarning = document.getElementById('char-warning');
+            const charCounter = document.getElementById('char-counter');
+            const tokenCounter = document.getElementById('token-counter');
             const MAX_URL_LENGTH = 10000;
+
+            function estimateTokens(text) {
+                // Rough estimation: ~4 characters per token on average
+                return Math.ceil(text.length / 4);
+            }
 
             clipContent.addEventListener('input', async () => {
                 const text = clipContent.value;
+
+                // Update character and token counters
+                const charCount = text.length;
+                const tokenCount = estimateTokens(text);
+                charCounter.textContent = `${charCount} character${charCount !== 1 ? 's' : ''}`;
+                tokenCounter.textContent = `~${tokenCount} token${tokenCount !== 1 ? 's' : ''}`;
+
                 if (!text) { charWarning.classList.add('hidden'); return; }
                 const url = await makeUrl(text);
                 if (url.length > MAX_URL_LENGTH) {
