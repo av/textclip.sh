@@ -82,6 +82,7 @@
         .btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--border); }
         .text-sm { font-size: 0.85rem; }
         .text-error { color: var(--error); }
+        .text-wrap { word-wrap: break-word; }
         .bg-error { background: color-mix(in oklch, var(--bg), var(--error) 10%); }
         .border-l-error { border-left: 3px solid var(--error); }
         .p-3 { padding: 12px; }
@@ -234,7 +235,7 @@
             // Display text with copy button
             const customFailMsg = params.get('failmsg');
             const failedNotice = localhostFailed
-                ? `<p class="text-sm text-error bg-error border-l-error p-3 mb-4">${customFailMsg ? customFailMsg.replace(/</g, '&lt;') : `Could not reach <code>${localhostFailed.replace(/</g, '&lt;')}</code> — copy manually instead.`}</p>`
+                ? `<p class="text-sm text-error bg-error border-l-error p-3 mb-4 text-wrap">${customFailMsg ? customFailMsg.replace(/</g, '&lt;') : `Could not reach <code>${localhostFailed.replace(/</g, '&lt;')}</code> — copy manually instead.`}</p>`
                 : '';
             content.innerHTML = `
                 ${failedNotice}
