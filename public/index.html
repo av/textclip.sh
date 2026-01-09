@@ -162,6 +162,37 @@
             return base;
         }
 
+        function isLocalhostUrl(url) {
+            try {
+                const u = new URL(url);
+                return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(u.hostname);
+            } catch { return false; }
+        }
+
+        function getLocalhostCacheKey(url) {
+            try { return `textclip_localhost_${new URL(url).origin}`; } catch { return null; }
+        }
+
+        function isLocalhostCached(url) {
+            const key = getLocalhostCacheKey(url);
+            return key && localStorage.getItem(key) === 'available';
+        }
+
+        function cacheLocalhostAvailable(url) {
+            const key = getLocalhostCacheKey(url);
+            if (key) localStorage.setItem(key, 'available');
+        }
+
+        async function checkLocalhostAvailable(url) {
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 2000);
+                await fetch(url, { mode: 'no-cors', signal: controller.signal });
+                clearTimeout(timeout);
+                return true;
+            } catch { return false; }
+        }
+
         async function init() {
         const params = new URLSearchParams(window.location.search);
         const text = await getText();
@@ -177,15 +208,29 @@
 
         // Handle custom redirect
         const redirect = params.get('redirect');
+        let localhostFailed = false;
         if (redirect && text) {
             const finalUrl = redirect.replace(/__TEXT__/g, encodeURIComponent(text));
-            window.location.href = finalUrl;
-            return;
+            if (isLocalhostUrl(finalUrl)) {
+                if (isLocalhostCached(finalUrl) || await checkLocalhostAvailable(finalUrl)) {
+                    cacheLocalhostAvailable(finalUrl);
+                    window.location.href = finalUrl;
+                    return;
+                }
+                localhostFailed = finalUrl;
+            } else {
+                window.location.href = finalUrl;
+                return;
+            }
         }
 
         if (text) {
             // Display text with copy button
+            const failedNotice = localhostFailed 
+                ? `<p style="font-size: 0.85rem; opacity: 0.7; margin-bottom: 16px;">Could not reach <code>${localhostFailed.replace(/</g, '&lt;')}</code> — copy manually instead.</p>`
+                : '';
             content.innerHTML = `
+                ${failedNotice}
                 <div class="flex justify-between mb-6">
                     <button id="copy-btn">copy</button>
                     <button id="new-clip-btn">new clip</button>
