@@ -18,6 +18,7 @@
             --bg: #252421;
             --fg: #ceb8a8;
             --border: #ceb8a8;
+            --error: color-mix(in oklch, var(--fg), red 40%);
         }
         * {
             margin: 0;
@@ -79,6 +80,11 @@
         .border { border: 1px solid var(--border); }
         .text-fg { color: var(--fg); }
         .btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+        .text-sm { font-size: 0.85rem; }
+        .text-error { color: var(--error); }
+        .bg-error { background: color-mix(in oklch, var(--bg), var(--error) 10%); }
+        .border-l-error { border-left: 3px solid var(--error); }
+        .p-3 { padding: 12px; }
         header a { text-decoration: none; }
         header a:hover { opacity: 0.8; }
         .sub-header { border-bottom: 1px solid var(--border); padding: 16px 0; }
@@ -226,8 +232,9 @@
 
         if (text) {
             // Display text with copy button
-            const failedNotice = localhostFailed 
-                ? `<p style="font-size: 0.85rem; opacity: 0.7; margin-bottom: 16px;">Could not reach <code>${localhostFailed.replace(/</g, '&lt;')}</code> — copy manually instead.</p>`
+            const customFailMsg = params.get('failmsg');
+            const failedNotice = localhostFailed
+                ? `<p class="text-sm text-error bg-error border-l-error p-3 mb-4">${customFailMsg ? customFailMsg.replace(/</g, '&lt;') : `Could not reach <code>${localhostFailed.replace(/</g, '&lt;')}</code> — copy manually instead.`}</p>`
                 : '';
             content.innerHTML = `
                 ${failedNotice}
