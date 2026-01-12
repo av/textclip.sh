@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — textclip.sh</title>
+    <meta name="description" content="Privacy Policy for textclip.sh">
+    <meta name="robots" content="index,follow">
+    <style>
+        :root {
+            --bg: #252421;
+            --fg: #ceb8a8;
+            --border: #ceb8a8;
+            --error: color-mix(in oklch, var(--fg), red 40%);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: var(--fg) var(--bg);
+        }
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--fg); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border); }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            animation: fadeIn 0.125s ease-in forwards;
+        }
+        @keyframes fadeIn { to { opacity: 1; } }
+        header { border-bottom: 1px solid var(--border); padding: 24px 0; }
+        header > h1 { max-width: 900px; margin: 0 auto; padding: 0 40px; }
+        h1 { font-size: 1.5rem; font-weight: 400; letter-spacing: -0.02em; }
+        h2 { font-size: 1.1rem; font-weight: 400; margin-bottom: 16px; }
+        p { margin-bottom: 16px; font-size: 0.95rem; }
+        ul { margin: 0 0 16px 18px; }
+        li { margin: 6px 0; }
+        .container { max-width: 900px; width: 100%; margin: 0 auto; padding: 60px 40px; flex: 1; }
+        footer { border-top: 1px solid var(--border); padding: 24px 40px; text-align: center; font-size: 0.9rem; }
+        footer a { margin: 0 12px; }
+        a { color: var(--fg); text-decoration: underline; text-decoration-color: var(--border); transition: text-decoration-color 0.2s; }
+        a:hover { text-decoration-color: var(--fg); }
+        code { background: #151515; padding: 3px 8px; font-family: 'SF Mono', Monaco, monospace; font-size: 0.9em; }
+        .muted { opacity: 0.8; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><a href="/">textclip.sh</a></h1>
+    </header>
+
+    <div class="container">
+        <h2>Privacy Policy</h2>
+        <p class="muted">Effective date: 2026-01-12</p>
+
+        <p>textclip.sh is a static website that helps you generate copyable links/badges that embed text in the URL (via query params and/or the URL fragment).</p>
+
+        <p><strong>What we collect</strong></p>
+        <ul>
+            <li><strong>No account data:</strong> There are no user accounts.</li>
+            <li><strong>No cookies:</strong> textclip.sh does not set cookies for tracking or advertising.</li>
+            <li><strong>No analytics:</strong> We do not run client-side analytics scripts.</li>
+            <li><strong>No server-side storage of your text:</strong> Your text stays in your browser and in the URL you generate. If you share the URL, anyone with the URL can see the embedded text.</li>
+        </ul>
+
+        <p><strong>Hosting / logs</strong></p>
+        <p>textclip.sh is hosted on Cloudflare Pages. Like most hosting providers, Cloudflare may process request metadata (for example: IP address, user agent, and request timestamps) for security, reliability, and performance.</p>
+
+        <p><strong>Third-party links</strong></p>
+        <p>Generated links may redirect you to third-party services (for example, AI chatbots or search engines). Their privacy practices are governed by their own policies.</p>
+
+        <p><strong>Contact</strong></p>
+        <p>For questions, contact <a href="https://av.codes" target="_blank" rel="noopener noreferrer">av.codes</a>.</p>
+    </div>
+
+    <footer>
+        <span id="year">2026</span>
+        <span>-</span>
+        <a href="https://av.codes" target="_blank" rel="noopener noreferrer">av.codes</a>
+        <span>-</span>
+        <a href="https://github.com/av/textclip.sh" target="_blank" rel="noopener noreferrer">github</a>
+        <span>-</span>
+        <a href="/privacy">privacy</a>
+        <span>/</span>
+        <a href="/terms">terms</a>
+    </footer>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>
